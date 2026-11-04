@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مدرسہ فاروقیہ ونڈکوٹو بونیر</title>
+<style>
+*{box-sizing:border-box;font-family:'Noto Nastaliq Urdu',Arial}
+body{background:#f0f4f0;margin:0;padding:10px}
+.header{background:#0b6e4f;color:white;text-align:center;padding:18px;border-radius:15px}
+.header h1{margin:0;font-size:24px}
+.header p{margin:5px 0 0;font-size:14px}
+.tabs{display:flex;gap:5px;margin:12px 0}
+.tabs button{flex:1;padding:12px;border:none;border-radius:10px;background:white;font-size:16px;font-weight:bold;cursor:pointer}
+.tabs button.active{background:#0b6e4f;color:white}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 8px #0001}
+input,select{width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:8px;font-size:16px}
+.btn{width:100%;padding:13px;background:#0b6e4f;color:white;border:none;border-radius:10px;font-size:17px;font-weight:bold;margin-top:8px}
+.btn2{background:#e67e22}
+.student{border:1px solid #eee;padding:12px;border-radius:10px;margin-bottom:8px;background:#fafafa}
+.student b{font-size:18px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:13px;background:#e8f5e9;color:#0b6e4f}
+.baqaya{color:red;font-weight:bold}
+.att-btn{padding:8px 12px;border-radius:8px;border:1px solid #ddd;margin:2px;font-size:15px}
+.att-btn.hazir{background:#0b6e4f;color:white}
+.att-btn.ghair{background:#c0392b;color:white}
+.att-btn.chutti{background:#f39c12;color:white}
+.search{margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>مدرسہ فاروقیہ ونڈکوٹو بونیر</h1>
+<p>حاضری و فیس مینجمنٹ سسٹم</p>
+<p id="todayDate"></p>
+</div>
+
+<div class="tabs">
+<button onclick="showTab('add',this)" class="active">نیا طالب علم</button>
+<button onclick="showTab('hazri',this)">حاضری</button>
+<button onclick="showTab('fees',this)">فیس</button>
+<button onclick="showTab('list',this)">فہرست</button>
+</div>
+
+<!-- نیا طالب علم -->
+<div id="add" class="card">
+<h3>نیا طالب علم داخل کریں</h3>
+<input id="sName" placeholder="طالب علم کا نام">
+<input id="fName" placeholder="والد کا نام">
+<input id="phone" placeholder="موبائل نمبر (اختیاری)">
+<select id="sClass">
+<option value="قاعدہ">قاعدہ - فیس 100</option>
+<option value="ناظرہ">ناظرہ - فیس 150</option>
+<option value="حفظ">حفظ - فیس 150</option>
+<option value="ترجمہ">ترجمہ - فیس 150</option>
+</select>
+<button class="btn" onclick="addStudent()">محفوظ کریں</button>
+</div>
+
+<!-- حاضری -->
+<div id="hazri" class="card" style="display:none">
+<h3>آج کی حاضری</h3>
+<input type="date" id="attDate">
+<select id="filterClass1" onchange="renderAttendance()">
+<option value="all">تمام کلاسیں</option>
+<option>قاعدہ</option><option>ناظرہ</option><option>حفظ</option><option>ترجمہ</option>
+</select>
+<div id="attList"></div>
+<button class="btn btn2" onclick="saveAttendance()">حاضری محفوظ کریں</button>
+</div>
+
+<!-- فیس -->
+<div id="fees" class="card" style="display:none">
+<h3>فیس وصولی</h3>
+<input class="search" id="feeSearch" placeholder="نام سے تلاش کریں..." oninput="renderFees()">
+<div id="feeList"></div>
+</div>
+
+<!-- فہرست -->
+<div id="list" class="card" style="display:none">
+<h3>تمام طلباء</h3>
+<p>کل طلباء: <b id="totalStd">0</b> | آج حاضر: <b id="todayHazir">0</b> | کل بقایا فیس: <b id="totalBaqaya">0</b> روپے</p>
+<div id="allList"></div>
+<button class="btn" style="background:#c0392b" onclick="if(confirm('کیا سارا ڈیٹا مٹانا ہے؟')){localStorage.clear();location.reload()}">سارا ڈیٹا صاف کریں</button>
+</div>
+
+<script>
+let students = JSON.parse(localStorage.getItem('madrasa_std')||'[]');
+let attendance = JSON.parse(localStorage.getItem('madrasa_att')||'{}');
+let fees = JSON.parse(localStorage.getItem('madrasa_fees')||'{}');
+let feesPrice = {'قاعدہ':100,'ناظرہ':150,'حفظ':150,'ترجمہ':150};
+
+document.getElementById('todayDate').innerText = new Date().toLocaleDateString('ur-PK',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('attDate').value = new Date().toISOString().slice(0,10);
+
+function save(){localStorage.setItem('madrasa_std',JSON.stringify(students));localStorage.setItem('madrasa_att',JSON.stringify(attendance));localStorage.setItem('madrasa_fees',JSON.stringify(fees));}
+function showTab(id,btn){['add','hazri','fees','list'].forEach(x=>document.getElementById(x).style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(id=='hazri')renderAttendance();if(id=='fees')renderFees();if(id=='list')renderList();}
+
+function addStudent(){
+let n=document.getElementById('sName').value.trim(), f=document.getElementById('fName').value.trim(), c=document.getElementById('sClass').value, p=document.getElementById('phone').value.trim();
+if(!n||!f){alert('نام اور والد کا نام لکھیں');return;}
+students.push({id:Date.now(),name:n,father:f,cls:c,phone:p});
+save();alert('طالب علم محفوظ ہو گیا');document.getElementById('sName').value='';document.getElementById('fName').value='';
+}
+
+function renderAttendance(){
+let date=document.getElementById('attDate').value, fc=document.getElementById('filterClass1').value;
+let html='';
+students.filter(s=>fc=='all'||s.cls==fc).forEach(s=>{
+let st=(attendance[date]||{})[s.id]||'';
+html+=`<div class="student"><b>${s.name}</b> <span class="badge">${s.cls}</span><br>ولد: ${s.father}<br>
+<button class="att-btn ${st=='حاضر'?'hazir':''}" onclick="markAtt(${s.id},'حاضر')">حاضر</button>
+<button class="att-btn ${st=='غیر حاضر'?'ghair':''}" onclick="markAtt(${s.id},'غیر حاضر')">غیر حاضر</button>
+<button class="att-btn ${st=='چھٹی'?'chutti':''}" onclick="markAtt(${s.id},'چھٹی')">چھٹی</button> <span>${st}</span></div>`;
+});
+document.getElementById('attList').innerHTML=html||'کوئی طالب علم نہیں';
+}
+function markAtt(id,st){let date=document.getElementById('attDate').value;if(!attendance[date])attendance[date]={};attendance[date][id]=st;save();renderAttendance();}
+function saveAttendance(){save();alert('حاضری محفوظ ہو گئی');}
+
+function renderFees(){
+let q=(document.getElementById('feeSearch').value||'').toLowerCase();
+let html='';
+students.filter(s=>s.name.toLowerCase().includes(q)).forEach(s=>{
+let paid=fees[s.id]||0, total=feesPrice[s.cls], baqaya=total-paid;
+html+=`<div class="student"><b>${s.name}</b> <span class="badge">${s.cls} - فیس ${total}</span><br>ولد: ${s.father}<br>جمع: ${paid} | <span class="baqaya">بقایا: ${baqaya}</span><br>
+<input type="number" id="pay${s.id}" placeholder="وصول رقم لکھیں"><button class="btn" onclick="payFee(${s.id})">فیس جمع کریں</button>
+<button class="btn btn2" onclick="resetFee(${s.id})">نیا مہینہ شروع کریں</button></div>`;
+});
+document.getElementById('feeList').innerHTML=html||'کوئی طالب علم نہیں';
+}
+function payFee(id){let v=parseInt(document.getElementById('pay'+id).value||0);if(!v)return alert('رقم لکھیں');fees[id]=(fees[id]||0)+v;save();renderFees();alert('فیس جمع ہو گئی');}
+function resetFee(id){if(confirm('نیا مہینہ؟ پرانی فیس صفر ہو جائے گی')){fees[id]=0;save();renderFees();}}
+
+function renderList(){
+let today=new Date().toISOString().slice(0,10);
+let hazir=Object.values(attendance[today]||{}).filter(x=>x=='حاضر').length;
+let baqaya=students.reduce((sum,s)=>sum+(feesPrice[s.cls]-(fees[s.id]||0)),0);
+document.getElementById('totalStd').innerText=students.length;
+document.getElementById('todayHazir').innerText=hazir;
+document.getElementById('totalBaqaya').innerText=baqaya;
+let html='';
+students.forEach(s=>{
+let paid=fees[s.id]||0, baq=feesPrice[s.cls]-paid;
+html+=`<div class="student"><b>${s.name}</b> - ${s.cls} <span class="badge">بقایا ${baq} روپے</span><br>ولد: ${s.father} | فون: ${s.phone||'-'} | جمع: ${paid}<br><button style="color:red;border:none;background:none" onclick="delStd(${s.id})">حذف کریں</button></div>`;
+});
+document.getElementById('allList').innerHTML=html||'فہرست خالی ہے';
+}
+function delStd(id){if(confirm('حذف کریں؟')){students=students.filter(s=>s.id!=id);save();renderList();}}
+renderAttendance();
+</script>
+</body>
+</html>
